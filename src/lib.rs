@@ -4,6 +4,7 @@ mod lora;
 mod status;
 mod enums;
 mod utility;
+mod uart;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

@@ -9,6 +9,10 @@ pub mod speed {
     }
 
     impl Speed {
+        pub fn new() -> Speed {
+            todo!()
+        }
+
         pub fn get_air_data_rate_description(&self) -> String {
             todo!()
         }
@@ -35,6 +39,10 @@ pub mod transmission_mode {
     }
 
     impl TransmissionMode {
+        pub fn new() -> TransmissionMode {
+            todo!()
+        }
+
         pub fn get_wor_period_by_params_description() -> String {
             todo!()
         }
@@ -62,6 +70,10 @@ pub mod opt {
     }
 
     impl Opt {
+        pub fn new() -> Opt {
+            todo!()
+        }
+
         pub fn get_transmission_power_description() -> String {
             todo!()
         }
@@ -76,7 +88,28 @@ pub mod opt {
     }
 }
 
+pub mod crypt {
+    pub struct Crypt {
+        crypt_h: u8,
+        crypt_l: u8
+    }
+
+    impl Crypt {
+        pub fn new() -> Crypt {
+            Crypt {
+                crypt_h: 0,
+                crypt_l: 0
+            }
+        }
+    }
+}
+
 pub mod configuration {
+    use crate::utility::crypt::Crypt;
+    use crate::utility::opt::Opt;
+    use crate::utility::speed::Speed;
+    use crate::utility::transmission_mode::TransmissionMode;
+
     pub struct Configuration {
         command: u8,
         starting_address: u8,
@@ -85,16 +118,35 @@ pub mod configuration {
         add_h: u8,
         add_l: u8,
 
-        //struct Speed;
-        //struct Option;
+        sped: Speed,
+        opt: Opt,
 
-        chan: u8    // default = 0
+        chan: u8,    // default = 0
 
-        //struct TransmissionMode;
-        //struct Crypt;
+        transmission_mode: TransmissionMode,
+        crypt: Crypt
     }
 
     impl Configuration {
+        pub fn new() -> Configuration {
+            Configuration {
+                command: 0,
+                starting_address: 0,
+                length: 0,
+
+                add_h: 0,
+                add_l: 0,
+
+                sped: Speed::new(),
+                opt: Opt::new(),
+
+                chan: 0,
+
+                transmission_mode: TransmissionMode::new(),
+                crypt: Crypt::new(),
+            }
+        }
+
         pub fn get_channel_description(&self) -> String {
             todo!()
         }

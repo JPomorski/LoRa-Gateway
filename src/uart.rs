@@ -20,6 +20,7 @@ pub enum UartBpsType {
     UartBps115200 = 0b111,
 }
 
+#[derive(PartialEq)]
 pub enum UartBpsRate {
     UartBpsRate1200 = 1200,
     UartBpsRate2400 = 2400,

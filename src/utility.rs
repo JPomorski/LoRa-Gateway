@@ -2,6 +2,7 @@
 pub const OPERATING_FREQUENCY: u16 = 850;
 
 pub mod speed {
+    #[derive(Clone)]
     pub struct Speed {
         air_data_rate: u8,
         uart_parity: u8,
@@ -28,6 +29,7 @@ pub mod speed {
 }
 
 pub mod transmission_mode {
+    #[derive(Clone)]
     pub struct TransmissionMode {
         wor_period: u8,
         reserved_2: u8,
@@ -62,6 +64,7 @@ pub mod transmission_mode {
 }
 
 pub mod opt {
+    #[derive(Clone)]
     pub struct Opt {
         transmission_power: u8,
         reserved: u8,   // might be obsolete
@@ -89,6 +92,7 @@ pub mod opt {
 }
 
 pub mod crypt {
+    #[derive(Clone)]
     pub struct Crypt {
         crypt_h: u8,
         crypt_l: u8
@@ -110,6 +114,7 @@ pub mod configuration {
     use crate::utility::speed::Speed;
     use crate::utility::transmission_mode::TransmissionMode;
 
+    #[derive(Clone)]
     pub struct Configuration {
         command: u8,
         starting_address: u8,

@@ -4,6 +4,7 @@ use crate::status::Status;
 use crate::enums::program_command::ProgramCommand;
 use crate::utility::configuration::Configuration;
 use std::time::{Duration, Instant};
+use rppal::gpio::Gpio;
 
 #[derive(Debug, Clone)]
 pub struct ResponseStatus {
@@ -134,6 +135,34 @@ impl LoRa {
     fn managed_delay(timeout: Duration) {
         let start = Instant::now();
         while start.elapsed() < timeout {}
+    }
+
+    fn wait_complete_response(&self, timeout: Duration, wait_no_aux: Duration) -> Status {
+        let start = Instant::now();
+
+        if self.aux_pin != NOT_SET {
+            let gpio = Gpio::new().expect("GPIO failed to initialize!");
+            let aux = gpio.get(self.aux_pin as u8).expect("AUX pin failed to be fetched!").into_input();
+
+            while aux.is_low() {
+                if start.elapsed() > timeout {
+                    println!("Timeout error!");
+                    return Status::ErrE220Timeout
+                }
+            }
+
+            println!("AUX HIGH")
+        } else {
+            Self::managed_delay(wait_no_aux);
+            println!("Wait no AUX pin!")
+        }
+
+        let duration = 20;
+
+        Self::managed_delay(Duration::from_millis(duration));
+        println!("Complete!");
+
+        return Status::E220Success
     }
 
     fn pin_is_set(pin: i8) -> bool {

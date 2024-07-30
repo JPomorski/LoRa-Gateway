@@ -97,7 +97,7 @@ impl LoRa {
         }
     }
 
-    pub fn get_configuration(&self) -> ConfigurationResponse {
+    pub fn get_configuration(&mut self) -> ConfigurationResponse {
         let response: ConfigurationResponse;
         let status = self.check_uart_configuration(ModeType::MODE_3_PROGRAM);
 
@@ -106,7 +106,13 @@ impl LoRa {
             return response;
         }
 
-        let _prev_mode: ModeType;
+        let _prev_mode = self.mode.clone();
+        let status = self.set_mode(ModeType::MODE_3_PROGRAM);
+
+        if status != Status::E220Success {
+            response = ConfigurationResponse::new(status, None);
+            return response;
+        }
 
         todo!();
 
@@ -128,8 +134,52 @@ impl LoRa {
         return self.mode.clone()
     }
 
-    fn set_mode(_mode: ModeType) -> Status {
-        todo!()
+    fn set_mode(&mut self, mode: ModeType) -> Status {
+        let duration = 40;
+        Self::managed_delay(Duration::from_millis(duration));
+
+        if self.m0_pin == NOT_SET && self.m1_pin == NOT_SET {
+            println!("The M0 and M1 pins are not set!")
+        } else {
+            let gpio = Gpio::new().expect("GPIO failed to initialize!");
+            let mut m0 = gpio.get(self.m0_pin as u8).expect("M0 pin failed to be fetched!").into_output();
+            let mut m1 = gpio.get(self.m1_pin as u8).expect("M1 pin failed to be fetched!").into_output();
+
+            match mode {
+                ModeType::MODE_0_NORMAL => {
+                    m0.set_low();
+                    m1.set_low();
+                    println!("MODE: NORMAL")
+                },
+                ModeType::MODE_1_WOR_TRANSMITTER => {
+                    m0.set_high();
+                    m1.set_low();
+                    println!("MODE: WOR TRANSMITTING")
+                },
+                ModeType::MODE_2_WOR_RECEIVER => {
+                    m0.set_low();
+                    m1.set_high();
+                    println!("MODE: WOR RECEIVING")
+                },
+                ModeType::MODE_3_CONFIGURATION => {
+                    m0.set_high();
+                    m1.set_high();
+                    println!("MODE: SLEEP CONFIG")
+                },
+                _ => return Status::ErrE220InvalidParam
+            }
+        }
+
+        Self::managed_delay(Duration::from_millis(duration));
+
+        let duration = Duration::from_secs(1);
+        let result = self.wait_complete_response(duration, duration);
+
+        if result == Status::E220Success {
+            self.mode = mode;
+        }
+
+        return result
     }
 
     fn managed_delay(timeout: Duration) {

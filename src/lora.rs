@@ -4,7 +4,12 @@ use crate::status::Status;
 use crate::enums::program_command::ProgramCommand;
 use crate::utility::configuration::Configuration;
 use std::time::{Duration, Instant};
+
+#[cfg(feature = "default")]
 use rppal::gpio::Gpio;
+
+#[cfg(not(feature = "default"))]
+use crate::mock::gpio::Gpio;
 
 #[derive(Debug, Clone)]
 pub struct ResponseStatus {

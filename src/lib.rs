@@ -5,6 +5,7 @@ mod status;
 mod enums;
 mod utility;
 mod uart;
+mod mock;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

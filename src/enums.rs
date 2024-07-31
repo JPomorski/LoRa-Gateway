@@ -72,7 +72,7 @@ pub mod air_data_rate {
 }
 
 pub mod mode_type {
-    #[derive(Clone, PartialEq)]
+    #[derive(Clone, PartialEq, Eq)]
     #[repr(u8)]
     pub enum ModeType {
         Mode0 = 0,

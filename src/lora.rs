@@ -1,12 +1,16 @@
+use std::mem::size_of;
 use crate::enums::mode_type::ModeType;
 use crate::status;
 use crate::status::Status;
 use crate::enums::program_command::ProgramCommand;
+use crate::enums::packet_length::PacketLength;
+use crate::enums::register_address::RegisterAddress;
 use crate::utility::configuration::Configuration;
 use std::time::{Duration, Instant};
 
 #[cfg(feature = "default")]
 use rppal::gpio::Gpio;
+use rppal::uart::{Error, Uart};
 
 #[cfg(not(feature = "default"))]
 use crate::mock::gpio::Gpio;
@@ -83,12 +87,14 @@ pub struct LoRa {
     m0_pin: i8,
     m1_pin: i8,
 
+    uart: Uart,
+
     bps_rate: UartBpsRate,
     mode: ModeType
 }
 
 impl LoRa {
-    pub fn new() -> LoRa {
+    pub fn new(uart: Uart) -> LoRa {
         LoRa {
             tx_e220_pin: NOT_SET,
             rx_e220_pin: NOT_SET,
@@ -97,27 +103,73 @@ impl LoRa {
             m0_pin: NOT_SET,
             m1_pin: NOT_SET,
 
+            uart,
+
             bps_rate: UartBpsRate::UartBpsRate9600,
             mode: ModeType::MODE_0_NORMAL
         }
     }
 
-    pub fn get_configuration(&mut self) -> ConfigurationResponse {
+    pub fn get_configuration(&mut self) -> Result<ConfigurationResponse, Error> {
         let response: ConfigurationResponse;
         let status = self.check_uart_configuration(ModeType::MODE_3_PROGRAM);
 
         if status != Status::E220Success {
             response = ConfigurationResponse::new(status, None);
-            return response;
+            return Ok(response);
         }
 
-        let _prev_mode = self.mode.clone();
+        let prev_mode = self.mode.clone();
         let status = self.set_mode(ModeType::MODE_3_PROGRAM);
 
         if status != Status::E220Success {
             response = ConfigurationResponse::new(status, None);
-            return response;
+            return Ok(response);
         }
+
+        self.write_program_command(
+            ProgramCommand::ReadConfiguration,
+            RegisterAddress::RegAddressCfg,
+            PacketLength::PlConfiguration
+        )?;
+
+        // change to return byte array
+        let status = self.receive_struct(size_of::<Configuration>())?;  // has to be verified
+
+        if status != Status::E220Success {
+            self.set_mode(prev_mode);
+
+            response = ConfigurationResponse::new(status, None);
+            return Ok(response);
+        }
+
+        self.print_parameters();
+
+        let status = self.set_mode(prev_mode);
+
+        if status != Status::E220Success {
+            response = ConfigurationResponse::new(status, None);
+            return Ok(response);
+        }
+
+        // use byte array to create a configuration
+        let configuration = Configuration::from_bytes(&[]);
+
+        if configuration.get_command() == ProgramCommand::WrongFormat as u8 {
+            let status = Status::ErrE220WrongFormat;
+            response = ConfigurationResponse::new(status, None);
+            return Ok(response);
+        }
+
+        // change Configuration struct to use enums instead
+        if configuration.get_command() != ProgramCommand::ReturnedCommand as u8 || configuration.get_starting_address() != RegisterAddress::RegAddressCfg as u8 || configuration.get_length() != PacketLength::PlConfiguration as u8 {
+            let status = Status::ErrE220HeadNotRecognized;
+            response = ConfigurationResponse::new(status, None);
+            return Ok(response);
+        }
+
+
+        response = ConfigurationResponse::new(status, Some(configuration));
 
         todo!();
 
@@ -185,6 +237,38 @@ impl LoRa {
         }
 
         return result
+    }
+
+    fn print_parameters(&self) {
+        todo!()
+    }
+
+    fn write_program_command(&mut self, cmd: ProgramCommand, addr: RegisterAddress, pl: PacketLength) -> Result<bool, Error> {
+        let command = vec![cmd as u8, addr as u8, pl as u8];
+        let size = self.uart.write(&command)?;
+
+        println!("Bytes written: {size}");
+
+        Self::managed_delay(Duration::from_millis(50));
+
+        return Ok(size != 2)
+    }
+
+    fn receive_struct(&mut self, expected_size: usize) -> Result<Status, Error> {
+        let read_bytes = self.uart.read(&mut [])?;
+
+        println!("Available buffer: {read_bytes}");
+        println!("Expected size: {expected_size}");
+
+        if read_bytes != expected_size {
+            if read_bytes == 0 {
+                return Ok(Status::ErrE220NoResponseFromDevice)
+            }
+            return Ok(Status::ErrE220DataSizeNotMatch)
+        }
+
+        let duration = Duration::from_secs(1);
+        return Ok(self.wait_complete_response(duration, duration))
     }
 
     fn managed_delay(timeout: Duration) {

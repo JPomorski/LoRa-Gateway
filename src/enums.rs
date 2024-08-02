@@ -22,6 +22,44 @@ pub mod program_command {
     }
 }
 
+pub mod register_address {
+    pub enum RegisterAddress {
+        RegAddressCfg = 0x00,
+        RegAddressSped = 0x02,
+        RegAddressTransMode = 0x03,
+        RegAddressChannel = 0x04,
+        RegAddressOption = 0x05,
+        RegAddressCrypt = 0x06,
+        RegAddressPid = 0x08
+    }
+}
+
+pub mod packet_length {
+    pub enum PacketLength {
+        PlConfiguration,
+        PlSped,
+        PlOption,
+        PlTransmissionMode,
+        PlChannel,
+        PlCrypt,
+        PlPid
+    }
+
+    impl PacketLength {
+        pub fn length(&self) -> u8 {
+            match self {
+                PacketLength::PlConfiguration => 0x08,
+                PacketLength::PlSped => 0x01,
+                PacketLength::PlOption => 0x01,
+                PacketLength::PlTransmissionMode => 0x01,
+                PacketLength::PlChannel => 0x01,
+                PacketLength::PlCrypt => 0x02,
+                PacketLength::PlPid => 0x03
+            }
+        }
+    }
+}
+
 pub mod air_data_rate {
     use crate::enums::air_data_rate::AirDataRate::*;
 

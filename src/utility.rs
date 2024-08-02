@@ -152,6 +152,22 @@ pub mod configuration {
             }
         }
 
+        pub fn from_bytes(_bytes: &[u8]) -> Configuration {
+            todo!()
+        }
+
+        pub fn get_command(&self) -> u8 {
+            self.command
+        }
+
+        pub fn get_starting_address(&self) -> u8 {
+            self.starting_address
+        }
+
+        pub fn get_length(&self) -> u8 {
+            self.length
+        }
+
         pub fn get_channel_description(&self) -> String {
             todo!()
         }

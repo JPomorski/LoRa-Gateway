@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 #[cfg(feature = "default")]
 use rppal::gpio::Gpio;
-use rppal::uart::{Error, Uart};
+use rppal::uart::Uart;
 
 #[cfg(not(feature = "default"))]
 use crate::mock::gpio::Gpio;
@@ -53,22 +53,22 @@ pub struct ConfigurationResponse {
     configuration: Option<Configuration>
 }
 
-impl ConfigurationResponse {
-    pub fn new(status: Status, configuration: Option<Configuration>) -> ConfigurationResponse {
-        ConfigurationResponse {
-            status,
-            configuration
-        }
-    }
-
-    pub fn get_status(&self) -> Status {
-        return self.status.clone()
-    }
-
-    pub fn get_configuration(&self) -> Option<Configuration> {
-        return self.configuration.clone()
-    }
-}
+// impl ConfigurationResponse {
+//     pub fn new(status: Status, configuration: Option<Configuration>) -> ConfigurationResponse {
+//         ConfigurationResponse {
+//             status,
+//             configuration
+//         }
+//     }
+//
+//     pub fn get_status(&self) -> Status {
+//         return self.status.clone()
+//     }
+//
+//     pub fn get_configuration(&self) -> Option<Configuration> {
+//         return self.configuration.clone()
+//     }
+// }
 
 pub struct ResponseContainer {
     data: String,
@@ -76,7 +76,7 @@ pub struct ResponseContainer {
     status: Status
 }
 
-pub const NOT_SET: i8 = -1;
+pub const UNINITIALIZED: i8 = -1;
 
 use crate::uart::UartBpsRate;
 pub struct LoRa {
@@ -96,12 +96,12 @@ pub struct LoRa {
 impl LoRa {
     pub fn new(uart: Uart) -> LoRa {
         LoRa {
-            tx_e220_pin: NOT_SET,
-            rx_e220_pin: NOT_SET,
-            aux_pin: NOT_SET,
+            tx_e220_pin: UNINITIALIZED,
+            rx_e220_pin: UNINITIALIZED,
+            aux_pin: UNINITIALIZED,
 
-            m0_pin: NOT_SET,
-            m1_pin: NOT_SET,
+            m0_pin: UNINITIALIZED,
+            m1_pin: UNINITIALIZED,
 
             uart,
 
@@ -110,37 +110,33 @@ impl LoRa {
         }
     }
 
-    pub fn get_configuration(&mut self) -> Result<ConfigurationResponse, Error> {
-        let response: ConfigurationResponse;
+    pub fn get_configuration(&mut self) -> Result<Configuration, Status> {
         let status = self.check_uart_configuration(ModeType::MODE_3_PROGRAM);
 
         if status != Status::E220Success {
-            response = ConfigurationResponse::new(status, None);
-            return Ok(response);
+            return Err(status)
         }
 
         let prev_mode = self.mode.clone();
         let status = self.set_mode(ModeType::MODE_3_PROGRAM);
 
         if status != Status::E220Success {
-            response = ConfigurationResponse::new(status, None);
-            return Ok(response);
+            return Err(status)
         }
 
         self.write_program_command(
             ProgramCommand::ReadConfiguration,
             RegisterAddress::RegAddressCfg,
             PacketLength::PlConfiguration
-        )?;
+        );
 
         // change to return byte array
-        let status = self.receive_struct(size_of::<Configuration>())?;  // has to be verified
+        let status = self.receive_struct(size_of::<Configuration>());  // has to be verified
 
         if status != Status::E220Success {
             self.set_mode(prev_mode);
 
-            response = ConfigurationResponse::new(status, None);
-            return Ok(response);
+            return Err(status)
         }
 
         self.print_parameters();
@@ -148,8 +144,7 @@ impl LoRa {
         let status = self.set_mode(prev_mode);
 
         if status != Status::E220Success {
-            response = ConfigurationResponse::new(status, None);
-            return Ok(response);
+            return Err(status)
         }
 
         // use byte array to create a configuration
@@ -157,23 +152,19 @@ impl LoRa {
 
         if configuration.get_command() == ProgramCommand::WrongFormat as u8 {
             let status = Status::ErrE220WrongFormat;
-            response = ConfigurationResponse::new(status, None);
-            return Ok(response);
+            return Err(status)
         }
 
         // change Configuration struct to use enums instead
-        if configuration.get_command() != ProgramCommand::ReturnedCommand as u8 || configuration.get_starting_address() != RegisterAddress::RegAddressCfg as u8 || configuration.get_length() != PacketLength::PlConfiguration as u8 {
+        if configuration.get_command() != ProgramCommand::ReturnedCommand as u8
+            || configuration.get_starting_address() != RegisterAddress::RegAddressCfg as u8
+            || configuration.get_length() != PacketLength::PlConfiguration as u8
+        {
             let status = Status::ErrE220HeadNotRecognized;
-            response = ConfigurationResponse::new(status, None);
-            return Ok(response);
+            return Err(status)
         }
 
-
-        response = ConfigurationResponse::new(status, Some(configuration));
-
-        todo!();
-
-        //return response
+        return Ok(configuration)
     }
 
     fn set_configuration(_configuration: Configuration, _save_type: ProgramCommand) -> ResponseStatus {   // default = WRITE_CFG_PWR_DWN_LOSE
@@ -195,7 +186,7 @@ impl LoRa {
         let duration = 40;
         Self::managed_delay(Duration::from_millis(duration));
 
-        if self.m0_pin == NOT_SET && self.m1_pin == NOT_SET {
+        if self.m0_pin == UNINITIALIZED && self.m1_pin == UNINITIALIZED {
             println!("The M0 and M1 pins are not set!")
         } else {
             let gpio = Gpio::new().expect("GPIO failed to initialize!");
@@ -243,32 +234,32 @@ impl LoRa {
         todo!()
     }
 
-    fn write_program_command(&mut self, cmd: ProgramCommand, addr: RegisterAddress, pl: PacketLength) -> Result<bool, Error> {
+    fn write_program_command(&mut self, cmd: ProgramCommand, addr: RegisterAddress, pl: PacketLength) -> bool {
         let command = vec![cmd as u8, addr as u8, pl as u8];
-        let size = self.uart.write(&command)?;
+        let size = self.uart.write(&command).expect("Failed to write to UART");
 
         println!("Bytes written: {size}");
 
         Self::managed_delay(Duration::from_millis(50));
 
-        return Ok(size != 2)
+        return size != 2
     }
 
-    fn receive_struct(&mut self, expected_size: usize) -> Result<Status, Error> {
-        let read_bytes = self.uart.read(&mut [])?;
+    fn receive_struct(&mut self, expected_size: usize) -> Status {
+        let read_bytes = self.uart.read(&mut []).expect("Failed to read from UART");
 
         println!("Available buffer: {read_bytes}");
         println!("Expected size: {expected_size}");
 
         if read_bytes != expected_size {
             if read_bytes == 0 {
-                return Ok(Status::ErrE220NoResponseFromDevice)
+                return Status::ErrE220NoResponseFromDevice
             }
-            return Ok(Status::ErrE220DataSizeNotMatch)
+            return Status::ErrE220DataSizeNotMatch
         }
 
         let duration = Duration::from_secs(1);
-        return Ok(self.wait_complete_response(duration, duration))
+        return self.wait_complete_response(duration, duration)
     }
 
     fn managed_delay(timeout: Duration) {
@@ -279,7 +270,7 @@ impl LoRa {
     fn wait_complete_response(&self, timeout: Duration, wait_no_aux: Duration) -> Status {
         let start = Instant::now();
 
-        if self.aux_pin != NOT_SET {
+        if self.aux_pin != UNINITIALIZED {
             let gpio = Gpio::new().expect("GPIO failed to initialize!");
             let aux = gpio.get(self.aux_pin as u8).expect("AUX pin failed to be fetched!").into_input();
 
@@ -305,7 +296,7 @@ impl LoRa {
     }
 
     fn pin_is_set(pin: i8) -> bool {
-        if pin == NOT_SET {
+        if pin == UNINITIALIZED {
             false
         } else {
             true

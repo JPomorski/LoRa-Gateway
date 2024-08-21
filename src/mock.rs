@@ -46,7 +46,23 @@ pub mod gpio {
     }
 
     impl OutputPin {
-        pub fn set_low(&self) {}
-        pub fn set_high(&self) {}
+        pub fn set_low(&mut self) {}
+        pub fn set_high(&mut self) {}
+    }
+}
+
+pub mod uart {
+    pub struct Uart {
+
+    }
+
+    impl Uart {
+        pub fn read(&mut self, _buffer: &mut [u8]) -> Result<usize, String> {
+            Ok(1)
+        }
+
+        pub fn write(&mut self, _buffer: &[u8]) -> Result<usize, String> {
+            Ok(1)
+        }
     }
 }

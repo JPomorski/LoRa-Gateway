@@ -10,10 +10,13 @@ use std::time::{Duration, Instant};
 
 #[cfg(feature = "default")]
 use rppal::gpio::Gpio;
+#[cfg(feature = "default")]
 use rppal::uart::Uart;
 
 #[cfg(not(feature = "default"))]
 use crate::mock::gpio::Gpio;
+#[cfg(not(feature = "default"))]
+use crate::mock::uart::Uart;
 
 #[derive(Debug, Clone)]
 pub struct ResponseStatus {
@@ -131,7 +134,8 @@ impl LoRa {
         );
 
         // change to return byte array
-        let status = self.receive_struct(size_of::<Configuration>());  // has to be verified
+        let mut data = vec![0u8];
+        let status = self.receive_struct(&mut data, size_of::<Configuration>());  // has to be verified
 
         if status != Status::E220Success {
             self.set_mode(prev_mode);
@@ -148,7 +152,7 @@ impl LoRa {
         }
 
         // use byte array to create a configuration
-        let configuration = Configuration::from_bytes(&[]);
+        let configuration = Configuration::from_bytes(&data);
 
         if configuration.get_command() == ProgramCommand::WrongFormat as u8 {
             let status = Status::ErrE220WrongFormat;
@@ -164,7 +168,7 @@ impl LoRa {
             return Err(status)
         }
 
-        return Ok(configuration)
+        Ok(configuration)
     }
 
     fn set_configuration(_configuration: Configuration, _save_type: ProgramCommand) -> ResponseStatus {   // default = WRITE_CFG_PWR_DWN_LOSE
@@ -175,11 +179,11 @@ impl LoRa {
         if mode == ModeType::MODE_3_PROGRAM && self.bps_rate != UartBpsRate::UartBpsRate9600 {
             return Status::ErrE220WrongUartConfig;
         }
-        return Status::E220Success
+        Status::E220Success
     }
 
     fn get_mode(&self) -> ModeType {
-        return self.mode.clone()
+        self.mode.clone()
     }
 
     fn set_mode(&mut self, mode: ModeType) -> Status {
@@ -227,7 +231,7 @@ impl LoRa {
             self.mode = mode;
         }
 
-        return result
+        result
     }
 
     fn print_parameters(&self) {
@@ -242,11 +246,11 @@ impl LoRa {
 
         Self::managed_delay(Duration::from_millis(50));
 
-        return size != 2
+        size != 2
     }
 
-    fn receive_struct(&mut self, expected_size: usize) -> Status {
-        let read_bytes = self.uart.read(&mut []).expect("Failed to read from UART");
+    fn receive_struct(&mut self, buffer: &mut [u8], expected_size: usize) -> Status {
+        let read_bytes = self.uart.read(buffer).expect("Failed to read from UART");
 
         println!("Available buffer: {read_bytes}");
         println!("Expected size: {expected_size}");
@@ -259,7 +263,7 @@ impl LoRa {
         }
 
         let duration = Duration::from_secs(1);
-        return self.wait_complete_response(duration, duration)
+        self.wait_complete_response(duration, duration)
     }
 
     fn managed_delay(timeout: Duration) {
@@ -292,7 +296,7 @@ impl LoRa {
         Self::managed_delay(Duration::from_millis(duration));
         println!("Complete!");
 
-        return Status::E220Success
+        Status::E220Success
     }
 
     fn pin_is_set(pin: i8) -> bool {

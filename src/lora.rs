@@ -1,7 +1,7 @@
 use std::mem::size_of;
 use crate::enums::mode_type::ModeType;
 use crate::status;
-use crate::status::Status;
+use crate::status::E220Error;
 use crate::enums::program_command::ProgramCommand;
 use crate::enums::packet_length::PacketLength;
 use crate::enums::register_address::RegisterAddress;
@@ -20,11 +20,11 @@ use crate::mock::uart::Uart;
 
 #[derive(Debug, Clone)]
 pub struct ResponseStatus {
-    code: Status
+    code: E220Error
 }
 
 impl ResponseStatus {
-    pub fn new(status: Status) -> ResponseStatus {
+    pub fn new(status: E220Error) -> ResponseStatus {
         ResponseStatus {
             code: status
         }
@@ -52,7 +52,7 @@ impl ResponseStructContainer {
 }
 
 pub struct ConfigurationResponse {
-    status: Status,
+    status: E220Error,
     configuration: Option<Configuration>
 }
 
@@ -76,7 +76,7 @@ pub struct ConfigurationResponse {
 pub struct ResponseContainer {
     data: String,
     rssi: u8,
-    status: Status
+    status: E220Error
 }
 
 pub const UNINITIALIZED: i8 = -1;
@@ -113,19 +113,11 @@ impl LoRa {
         }
     }
 
-    pub fn get_configuration(&mut self) -> Result<Configuration, Status> {
-        let status = self.check_uart_configuration(ModeType::MODE_3_PROGRAM);
+    pub fn get_configuration(&mut self) -> Result<Configuration, E220Error> {
+        self.check_uart_configuration(ModeType::MODE_3_PROGRAM)?;
 
-        if status != Status::E220Success {
-            return Err(status)
-        }
-
-        let prev_mode = self.mode.clone();
-        let status = self.set_mode(ModeType::MODE_3_PROGRAM);
-
-        if status != Status::E220Success {
-            return Err(status)
-        }
+        let prev_mode = self.get_mode();
+        self.set_mode(ModeType::MODE_3_PROGRAM)?;
 
         self.write_program_command(
             ProgramCommand::ReadConfiguration,
@@ -133,30 +125,18 @@ impl LoRa {
             PacketLength::PlConfiguration
         );
 
-        // change to return byte array
-        let mut data = vec![0u8];
-        let status = self.receive_struct(&mut data, size_of::<Configuration>());  // has to be verified
-
-        if status != Status::E220Success {
-            self.set_mode(prev_mode);
-
-            return Err(status)
-        }
+        let result = self.receive_struct(size_of::<Configuration>());  // has to be verified
 
         self.print_parameters();
 
-        let status = self.set_mode(prev_mode);
-
-        if status != Status::E220Success {
-            return Err(status)
-        }
+        self.set_mode(prev_mode)?;
 
         // use byte array to create a configuration
+        let data = result?;
         let configuration = Configuration::from_bytes(&data);
 
         if configuration.get_command() == ProgramCommand::WrongFormat as u8 {
-            let status = Status::ErrE220WrongFormat;
-            return Err(status)
+            return Err(E220Error::WrongFormat);
         }
 
         // change Configuration struct to use enums instead
@@ -164,8 +144,7 @@ impl LoRa {
             || configuration.get_starting_address() != RegisterAddress::RegAddressCfg as u8
             || configuration.get_length() != PacketLength::PlConfiguration as u8
         {
-            let status = Status::ErrE220HeadNotRecognized;
-            return Err(status)
+            return  Err(E220Error::HeadNotRecognized);
         }
 
         Ok(configuration)
@@ -175,18 +154,18 @@ impl LoRa {
         todo!()
     }
 
-    fn check_uart_configuration(&self, mode: ModeType) -> Status {
+    fn check_uart_configuration(&self, mode: ModeType) -> Result<(), E220Error> {
         if mode == ModeType::MODE_3_PROGRAM && self.bps_rate != UartBpsRate::UartBpsRate9600 {
-            return Status::ErrE220WrongUartConfig;
+            return Err(E220Error::WrongUartConfig);
         }
-        Status::E220Success
+        Ok(())
     }
 
     fn get_mode(&self) -> ModeType {
         self.mode.clone()
     }
 
-    fn set_mode(&mut self, mode: ModeType) -> Status {
+    fn set_mode(&mut self, mode: ModeType) -> Result<(), E220Error> {
         let duration = 40;
         Self::managed_delay(Duration::from_millis(duration));
 
@@ -218,20 +197,18 @@ impl LoRa {
                     m1.set_high();
                     println!("MODE: SLEEP CONFIG")
                 },
-                _ => return Status::ErrE220InvalidParam
+                _ => return Err(E220Error::InvalidParam)
             }
         }
 
         Self::managed_delay(Duration::from_millis(duration));
 
         let duration = Duration::from_secs(1);
-        let result = self.wait_complete_response(duration, duration);
+        self.wait_complete_response(duration, duration)?;
 
-        if result == Status::E220Success {
-            self.mode = mode;
-        }
+        self.mode = mode;
 
-        result
+        Ok(())
     }
 
     fn print_parameters(&self) {
@@ -249,21 +226,24 @@ impl LoRa {
         size != 2
     }
 
-    fn receive_struct(&mut self, buffer: &mut [u8], expected_size: usize) -> Status {
-        let read_bytes = self.uart.read(buffer).expect("Failed to read from UART");
+    fn receive_struct(&mut self, expected_size: usize) -> Result<Vec<u8>, E220Error> {
+        let mut data = Vec::new();
+        let read_bytes = self.uart.read(&mut data).expect("Failed to read from UART");
 
         println!("Available buffer: {read_bytes}");
         println!("Expected size: {expected_size}");
 
         if read_bytes != expected_size {
             if read_bytes == 0 {
-                return Status::ErrE220NoResponseFromDevice
+                return Err(E220Error::NoResponseFromDevice)
             }
-            return Status::ErrE220DataSizeNotMatch
+            return Err(E220Error::DataSizeNotMatch)
         }
 
         let duration = Duration::from_secs(1);
-        self.wait_complete_response(duration, duration)
+        self.wait_complete_response(duration, duration)?;
+
+        Ok(data)
     }
 
     fn managed_delay(timeout: Duration) {
@@ -271,7 +251,7 @@ impl LoRa {
         while start.elapsed() < timeout {}
     }
 
-    fn wait_complete_response(&self, timeout: Duration, wait_no_aux: Duration) -> Status {
+    fn wait_complete_response(&self, timeout: Duration, wait_no_aux: Duration) -> Result<(), E220Error> {
         let start = Instant::now();
 
         if self.aux_pin != UNINITIALIZED {
@@ -281,7 +261,7 @@ impl LoRa {
             while aux.is_low() {
                 if start.elapsed() > timeout {
                     println!("Timeout error!");
-                    return Status::ErrE220Timeout
+                    return Err(E220Error::Timeout)
                 }
             }
 
@@ -296,7 +276,7 @@ impl LoRa {
         Self::managed_delay(Duration::from_millis(duration));
         println!("Complete!");
 
-        Status::E220Success
+        Ok(())
     }
 
     fn pin_is_set(pin: i8) -> bool {

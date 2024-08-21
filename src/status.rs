@@ -1,38 +1,36 @@
 #[derive(Debug, Clone, PartialEq)]
-pub enum Status {
-    E220Success = 1,
-    ErrE220Unknown,
-    ErrE220NotSupport,
-    ErrE220NotImplement,
-    ErrE220NotInitial,
-    ErrE220InvalidParam,
-    ErrE220DataSizeNotMatch,
-    ErrE220BufTooSmall,
-    ErrE220Timeout,
-    ErrE220Hardware,
-    ErrE220HeadNotRecognized,
-    ErrE220NoResponseFromDevice,
-    ErrE220WrongUartConfig,
-    ErrE220WrongFormat,
-    ErrE220PacketTooBig
+pub enum E220Error {
+    Unknown = 2,
+    NotSupport,
+    NotImplement,
+    NotInitial,
+    InvalidParam,
+    DataSizeNotMatch,
+    BufTooSmall,
+    Timeout,
+    Hardware,
+    HeadNotRecognized,
+    NoResponseFromDevice,
+    WrongUartConfig,
+    WrongFormat,
+    PacketTooBig
 }
 
-pub fn get_response_description_by_params(status: Status) -> String {
+pub fn get_response_description_by_params(status: E220Error) -> String {
     match status {
-        Status::E220Success => "Success".to_string(),
-        Status::ErrE220Unknown => "Unknown".to_string(),
-        Status::ErrE220NotSupport => "Not supported".to_string(),
-        Status::ErrE220NotImplement => "Not implemented".to_string(),
-        Status::ErrE220NotInitial => "Not initial".to_string(),
-        Status::ErrE220InvalidParam => "Invalid param".to_string(),
-        Status::ErrE220DataSizeNotMatch => "Data size does not match".to_string(),
-        Status::ErrE220BufTooSmall => "Buffer too small".to_string(),
-        Status::ErrE220Timeout => "Timeout".to_string(),
-        Status::ErrE220Hardware => "Hardware error".to_string(),
-        Status::ErrE220HeadNotRecognized => "Save mode returned not recognized".to_string(),
-        Status::ErrE220NoResponseFromDevice => "No response from device (check wiring)".to_string(),
-        Status::ErrE220WrongUartConfig => "Wrong UART configuration (BPS must be 9600 for configuration)".to_string(),
-        Status::ErrE220WrongFormat => "Wrong format".to_string(),
-        Status::ErrE220PacketTooBig => "Packet too big (max 200 bytes of data transmission)".to_string()
+        E220Error::Unknown => "Unknown".to_string(),
+        E220Error::NotSupport => "Not supported".to_string(),
+        E220Error::NotImplement => "Not implemented".to_string(),
+        E220Error::NotInitial => "Not initial".to_string(),
+        E220Error::InvalidParam => "Invalid param".to_string(),
+        E220Error::DataSizeNotMatch => "Data size does not match".to_string(),
+        E220Error::BufTooSmall => "Buffer too small".to_string(),
+        E220Error::Timeout => "Timeout".to_string(),
+        E220Error::Hardware => "Hardware error".to_string(),
+        E220Error::HeadNotRecognized => "Save mode returned not recognized".to_string(),
+        E220Error::NoResponseFromDevice => "No response from device (check wiring)".to_string(),
+        E220Error::WrongUartConfig => "Wrong UART configuration (BPS must be 9600 for configuration)".to_string(),
+        E220Error::WrongFormat => "Wrong format".to_string(),
+        E220Error::PacketTooBig => "Packet too big (max 200 bytes of data transmission)".to_string()
     }
 }

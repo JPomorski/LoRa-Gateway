@@ -80,6 +80,7 @@ pub struct ResponseContainer {
 }
 
 pub const UNINITIALIZED: i8 = -1;
+pub const MAX_SIZE_TX_PACKET: u8 = 200;
 
 use crate::uart::UartBpsRate;
 pub struct LoRa {
@@ -131,7 +132,6 @@ impl LoRa {
 
         self.set_mode(prev_mode)?;
 
-        // use byte array to create a configuration
         let data = result?;
         let configuration = Configuration::from_bytes(&data);
 
@@ -150,8 +150,46 @@ impl LoRa {
         Ok(configuration)
     }
 
-    fn set_configuration(_configuration: Configuration, _save_type: ProgramCommand) -> ResponseStatus {   // default = WRITE_CFG_PWR_DWN_LOSE
-        todo!()
+    fn set_configuration(&mut self, mut configuration: Configuration, permanent: bool) -> Result<(), E220Error> {
+        self.check_uart_configuration(ModeType::MODE_3_PROGRAM)?;
+
+        let prev_mode = self.get_mode();
+
+        self.set_mode(ModeType::MODE_3_PROGRAM)?;
+
+        if permanent {
+            configuration.set_command(ProgramCommand::WriteCfgPwrDwnSave);
+        } else {
+            configuration.set_command(ProgramCommand::WriteCfgPwrDwnLose);
+        }
+
+        configuration.set_starting_address(RegisterAddress::RegAddressCfg);
+        configuration.set_length(PacketLength::PlConfiguration);
+
+        let data = configuration.to_bytes();
+        self.send_struct(data, size_of::<Configuration>())?;    // again, verify the size
+
+        let received_data = self.receive_struct(size_of::<Configuration>())?;
+
+        self.print_parameters();
+
+        self.set_mode(prev_mode)?;
+
+        let received_configuration = Configuration::from_bytes(&received_data);
+
+        // could compare the configuration objects instead
+        if received_configuration.get_command() == ProgramCommand::WrongFormat as u8 {
+            return Err(E220Error::WrongFormat)
+        }
+
+        if received_configuration.get_command() != ProgramCommand::ReturnedCommand as u8
+            || received_configuration.get_starting_address() != RegisterAddress::RegAddressCfg as u8
+            || received_configuration.get_length() != PacketLength::PlConfiguration as u8
+        {
+            return Err(E220Error::HeadNotRecognized)
+        }
+
+        Ok(())
     }
 
     fn check_uart_configuration(&self, mode: ModeType) -> Result<(), E220Error> {
@@ -244,6 +282,44 @@ impl LoRa {
         self.wait_complete_response(duration, duration)?;
 
         Ok(data)
+    }
+
+    fn send_struct(&mut self, data: Vec<u8>, size: usize) -> Result<(), E220Error> {
+        if size > MAX_SIZE_TX_PACKET as usize {
+            return Err(E220Error::PacketTooBig)
+        }
+
+        let written_bytes = self.uart.write(&data).expect("Failed to write to UART");
+
+        println!("Sending data...");
+        println!("Data size: {written_bytes}");
+        println!("Expected size: {size}");
+
+        if written_bytes != size {
+            if written_bytes == 0 {
+                return Err(E220Error::NoResponseFromDevice)
+            }
+            return Err(E220Error::DataSizeNotMatch)
+        }
+
+        let duration = Duration::from_secs(5);
+        self.wait_complete_response(duration, duration)?;
+
+        println!("Clearing UART buffer...");
+        self.clear_uart_buffer();
+
+        Ok(())
+    }
+
+    fn clear_uart_buffer(&mut self) {
+        let mut buffer = [0u8; 64]; // clear the buffer in 64 byte chunks
+
+        loop {
+            let read_bytes = self.uart.read(&mut buffer).expect("Failed to clear UART");
+            if read_bytes == 0 {
+                return;
+            }
+        }
     }
 
     fn managed_delay(timeout: Duration) {

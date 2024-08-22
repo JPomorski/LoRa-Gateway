@@ -26,6 +26,18 @@ pub mod speed {
             }
         }
 
+        pub fn get_air_data_rate(&self) -> u8 {
+            self.air_data_rate
+        }
+
+        pub fn get_uart_parity(&self) -> u8 {
+            self.uart_parity
+        }
+
+        pub fn get_uart_baud_rate(&self) -> u8 {
+            self.uart_baud_rate
+        }
+
         pub fn get_air_data_rate_description(&self) -> String {
             todo!()
         }
@@ -75,6 +87,22 @@ pub mod transmission_mode {
             }
         }
 
+        pub fn get_wor_period(&self) -> u8 {
+            self.wor_period
+        }
+
+        pub fn get_enable_lbt(&self) -> u8 {
+            self.enable_lbt
+        }
+
+        pub fn get_fixed_transmission(&self) -> u8 {
+            self.fixed_transmission
+        }
+
+        pub fn get_enable_rssi(&self) -> u8 {
+            self.enable_rssi
+        }
+
         pub fn get_wor_period_by_params_description() -> String {
             todo!()
         }
@@ -121,6 +149,18 @@ pub mod opt {
             }
         }
 
+        pub fn get_transmission_power(&self) -> u8 {
+            self.transmission_power
+        }
+
+        pub fn get_rssi_ambient_noise(&self) -> u8 {
+            self.rssi_ambient_noise
+        }
+
+        pub fn get_sub_packet_setting(&self) -> u8 {
+            self.sub_packet_setting
+        }
+
         pub fn get_transmission_power_description() -> String {
             todo!()
         }
@@ -129,7 +169,7 @@ pub mod opt {
             todo!()
         }
 
-        pub fn get_sub_packet_setting() -> String {
+        pub fn get_sub_packet_setting_description() -> String {
             todo!()
         }
     }
@@ -156,10 +196,21 @@ pub mod crypt {
                 crypt_l,
             }
         }
+
+        pub fn get_h(&self) -> u8 {
+            self.crypt_h
+        }
+
+        pub fn get_l(&self) -> u8 {
+            self.crypt_l
+        }
     }
 }
 
 pub mod configuration {
+    use crate::enums::packet_length::PacketLength;
+    use crate::enums::program_command::ProgramCommand;
+    use crate::enums::register_address::RegisterAddress;
     use crate::utility::crypt::Crypt;
     use crate::utility::opt::Opt;
     use crate::utility::speed::Speed;
@@ -239,6 +290,34 @@ pub mod configuration {
             }
         }
 
+        pub fn to_bytes(&self) -> Vec<u8> {
+            vec![
+                self.command,
+                self.starting_address,
+                self.length,
+                self.add_h,
+                self.add_l,
+
+                self.sped.get_air_data_rate()
+                    | (self.sped.get_uart_parity() << 3)
+                    | (self.sped.get_uart_baud_rate() << 5),
+
+                self.opt.get_transmission_power()
+                    | (self.opt.get_rssi_ambient_noise() << 5)
+                    | (self.opt.get_sub_packet_setting() << 6),
+
+                self.chan,
+
+                self.transmission_mode.get_wor_period()
+                    | (self.transmission_mode.get_enable_lbt() << 4)
+                    | (self.transmission_mode.get_fixed_transmission() << 6)
+                    | (self.transmission_mode.get_enable_rssi() << 7),
+
+                self.crypt.get_h(),
+                self.crypt.get_l()
+            ]
+        }
+
         pub fn get_command(&self) -> u8 {
             self.command
         }
@@ -249,6 +328,18 @@ pub mod configuration {
 
         pub fn get_length(&self) -> u8 {
             self.length
+        }
+
+        pub fn set_command(&mut self, command: ProgramCommand) {
+            self.command = command as u8;
+        }
+
+        pub fn set_starting_address(&mut self, starting_address: RegisterAddress) {
+            self.starting_address = starting_address as u8;
+        }
+
+        pub fn set_length(&mut self, length: PacketLength) {
+            self.length = length as u8;
         }
 
         pub fn get_channel_description(&self) -> String {

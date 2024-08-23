@@ -56,23 +56,6 @@ pub struct ConfigurationResponse {
     configuration: Option<Configuration>
 }
 
-// impl ConfigurationResponse {
-//     pub fn new(status: Status, configuration: Option<Configuration>) -> ConfigurationResponse {
-//         ConfigurationResponse {
-//             status,
-//             configuration
-//         }
-//     }
-//
-//     pub fn get_status(&self) -> Status {
-//         return self.status.clone()
-//     }
-//
-//     pub fn get_configuration(&self) -> Option<Configuration> {
-//         return self.configuration.clone()
-//     }
-// }
-
 pub struct ResponseContainer {
     data: String,
     rssi: u8,
@@ -122,8 +105,8 @@ impl LoRa {
 
         self.write_program_command(
             ProgramCommand::ReadConfiguration,
-            RegisterAddress::RegAddressCfg,
-            PacketLength::PlConfiguration
+            RegisterAddress::Configuration,
+            PacketLength::Configuration
         );
 
         let result = self.receive_struct(size_of::<Configuration>());  // has to be verified
@@ -141,8 +124,8 @@ impl LoRa {
 
         // change Configuration struct to use enums instead
         if configuration.get_command() != ProgramCommand::ReturnedCommand as u8
-            || configuration.get_starting_address() != RegisterAddress::RegAddressCfg as u8
-            || configuration.get_length() != PacketLength::PlConfiguration as u8
+            || configuration.get_starting_address() != RegisterAddress::Configuration as u8
+            || configuration.get_length() != PacketLength::Configuration as u8
         {
             return  Err(E220Error::HeadNotRecognized);
         }
@@ -163,8 +146,8 @@ impl LoRa {
             configuration.set_command(ProgramCommand::WriteCfgPwrDwnLose);
         }
 
-        configuration.set_starting_address(RegisterAddress::RegAddressCfg);
-        configuration.set_length(PacketLength::PlConfiguration);
+        configuration.set_starting_address(RegisterAddress::Configuration);
+        configuration.set_length(PacketLength::Configuration);
 
         let data = configuration.to_bytes();
         self.send_struct(data, size_of::<Configuration>())?;    // again, verify the size
@@ -183,8 +166,8 @@ impl LoRa {
         }
 
         if received_configuration.get_command() != ProgramCommand::ReturnedCommand as u8
-            || received_configuration.get_starting_address() != RegisterAddress::RegAddressCfg as u8
-            || received_configuration.get_length() != PacketLength::PlConfiguration as u8
+            || received_configuration.get_starting_address() != RegisterAddress::Configuration as u8
+            || received_configuration.get_length() != PacketLength::Configuration as u8
         {
             return Err(E220Error::HeadNotRecognized)
         }
@@ -312,7 +295,7 @@ impl LoRa {
     }
 
     fn clear_uart_buffer(&mut self) {
-        let mut buffer = [0u8; 64]; // clear the buffer in 64 byte chunks
+        let mut buffer = [0u8; 256]; // clear the buffer in 256 byte chunks
 
         loop {
             let read_bytes = self.uart.read(&mut buffer).expect("Failed to clear UART");

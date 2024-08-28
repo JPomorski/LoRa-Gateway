@@ -115,7 +115,7 @@ impl LoRa {
     pub fn get_configuration(&mut self) -> Result<Configuration, E220Error> {
         self.check_uart_configuration(ModeType::MODE_3_PROGRAM)?;
 
-        let prev_mode = self.get_mode();
+        let prev_mode = self.mode();
         self.set_mode(ModeType::MODE_3_PROGRAM)?;
 
         self.write_program_command(
@@ -133,14 +133,14 @@ impl LoRa {
         let data = result?;
         let configuration = Configuration::from_bytes(&data);
 
-        if configuration.get_command() == ProgramCommand::WrongFormat as u8 {
+        if configuration.command() == ProgramCommand::WrongFormat as u8 {
             return Err(E220Error::WrongFormat);
         }
 
         // change Configuration struct to use enums instead
-        if configuration.get_command() != ProgramCommand::ReturnedCommand as u8
-            || configuration.get_starting_address() != RegisterAddress::Configuration as u8
-            || configuration.get_length() != PacketLength::Configuration as u8
+        if configuration.command() != ProgramCommand::ReturnedCommand as u8
+            || configuration.starting_address() != RegisterAddress::Configuration as u8
+            || configuration.length() != PacketLength::Configuration as u8
         {
             return  Err(E220Error::HeadNotRecognized);
         }
@@ -151,7 +151,7 @@ impl LoRa {
     fn set_configuration(&mut self, mut configuration: Configuration, permanent: bool) -> Result<(), E220Error> {
         self.check_uart_configuration(ModeType::MODE_3_PROGRAM)?;
 
-        let prev_mode = self.get_mode();
+        let prev_mode = self.mode();
 
         self.set_mode(ModeType::MODE_3_PROGRAM)?;
 
@@ -176,13 +176,13 @@ impl LoRa {
         let received_configuration = Configuration::from_bytes(&received_data);
 
         // could compare the configuration objects instead
-        if received_configuration.get_command() == ProgramCommand::WrongFormat as u8 {
+        if received_configuration.command() == ProgramCommand::WrongFormat as u8 {
             return Err(E220Error::WrongFormat)
         }
 
-        if received_configuration.get_command() != ProgramCommand::ReturnedCommand as u8
-            || received_configuration.get_starting_address() != RegisterAddress::Configuration as u8
-            || received_configuration.get_length() != PacketLength::Configuration as u8
+        if received_configuration.command() != ProgramCommand::ReturnedCommand as u8
+            || received_configuration.starting_address() != RegisterAddress::Configuration as u8
+            || received_configuration.length() != PacketLength::Configuration as u8
         {
             return Err(E220Error::HeadNotRecognized)
         }
@@ -197,7 +197,7 @@ impl LoRa {
         Ok(())
     }
 
-    fn get_mode(&self) -> ModeType {
+    fn mode(&self) -> ModeType {
         self.mode.clone()
     }
 

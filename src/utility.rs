@@ -26,15 +26,15 @@ pub mod speed {
             }
         }
 
-        pub fn get_air_data_rate(&self) -> u8 {
+        pub fn air_data_rate(&self) -> u8 {
             self.air_data_rate
         }
 
-        pub fn get_uart_parity(&self) -> u8 {
+        pub fn uart_parity(&self) -> u8 {
             self.uart_parity
         }
 
-        pub fn get_uart_baud_rate(&self) -> u8 {
+        pub fn uart_baud_rate(&self) -> u8 {
             self.uart_baud_rate
         }
 
@@ -57,11 +57,11 @@ pub mod transmission_mode {
     pub struct TransmissionMode {
         wor_period: u8,
         reserved_2: u8,
-        enable_lbt: u8,
+        lbt_enable: u8,
         reserved: u8,
 
         fixed_transmission: u8,
-        enable_rssi: u8
+        rssi_enable: u8
     }
 
     impl TransmissionMode {
@@ -69,38 +69,38 @@ pub mod transmission_mode {
             TransmissionMode {
                 wor_period: 0,
                 reserved_2: 0,
-                enable_lbt: 0,
+                lbt_enable: 0,
                 reserved: 0,
                 fixed_transmission: 0,
-                enable_rssi: 0,
+                rssi_enable: 0,
             }
         }
 
-        pub fn from_u8(wor_period: u8, enable_lbt: u8, fixed_transmission: u8, enable_rssi: u8) -> TransmissionMode {
+        pub fn from_u8(wor_period: u8, lbt_enable: u8, fixed_transmission: u8, rssi_enable: u8) -> TransmissionMode {
             TransmissionMode {
                 wor_period,
                 reserved_2: 0,
-                enable_lbt,
+                lbt_enable,
                 reserved: 0,
                 fixed_transmission,
-                enable_rssi,
+                rssi_enable,
             }
         }
 
-        pub fn get_wor_period(&self) -> u8 {
+        pub fn wor_period(&self) -> u8 {
             self.wor_period
         }
 
-        pub fn get_enable_lbt(&self) -> u8 {
-            self.enable_lbt
+        pub fn lbt_enable(&self) -> u8 {
+            self.lbt_enable
         }
 
-        pub fn get_fixed_transmission(&self) -> u8 {
+        pub fn fixed_transmission(&self) -> u8 {
             self.fixed_transmission
         }
 
-        pub fn get_enable_rssi(&self) -> u8 {
-            self.enable_rssi
+        pub fn rssi_enable(&self) -> u8 {
+            self.rssi_enable
         }
 
         pub fn get_wor_period_by_params_description() -> String {
@@ -149,15 +149,15 @@ pub mod opt {
             }
         }
 
-        pub fn get_transmission_power(&self) -> u8 {
+        pub fn transmission_power(&self) -> u8 {
             self.transmission_power
         }
 
-        pub fn get_rssi_ambient_noise(&self) -> u8 {
+        pub fn rssi_ambient_noise(&self) -> u8 {
             self.rssi_ambient_noise
         }
 
-        pub fn get_sub_packet_setting(&self) -> u8 {
+        pub fn sub_packet_setting(&self) -> u8 {
             self.sub_packet_setting
         }
 
@@ -197,11 +197,11 @@ pub mod crypt {
             }
         }
 
-        pub fn get_h(&self) -> u8 {
+        pub fn crypt_h(&self) -> u8 {
             self.crypt_h
         }
 
-        pub fn get_l(&self) -> u8 {
+        pub fn crypt_l(&self) -> u8 {
             self.crypt_l
         }
     }
@@ -298,35 +298,35 @@ pub mod configuration {
                 self.add_h,
                 self.add_l,
 
-                self.sped.get_air_data_rate()
-                    | (self.sped.get_uart_parity() << 3)
-                    | (self.sped.get_uart_baud_rate() << 5),
+                self.sped.air_data_rate()
+                    | (self.sped.uart_parity() << 3)
+                    | (self.sped.uart_baud_rate() << 5),
 
-                self.opt.get_transmission_power()
-                    | (self.opt.get_rssi_ambient_noise() << 5)
-                    | (self.opt.get_sub_packet_setting() << 6),
+                self.opt.transmission_power()
+                    | (self.opt.rssi_ambient_noise() << 5)
+                    | (self.opt.sub_packet_setting() << 6),
 
                 self.chan,
 
-                self.transmission_mode.get_wor_period()
-                    | (self.transmission_mode.get_enable_lbt() << 4)
-                    | (self.transmission_mode.get_fixed_transmission() << 6)
-                    | (self.transmission_mode.get_enable_rssi() << 7),
+                self.transmission_mode.wor_period()
+                    | (self.transmission_mode.lbt_enable() << 4)
+                    | (self.transmission_mode.fixed_transmission() << 6)
+                    | (self.transmission_mode.rssi_enable() << 7),
 
-                self.crypt.get_h(),
-                self.crypt.get_l()
+                self.crypt.crypt_h(),
+                self.crypt.crypt_l()
             ]
         }
 
-        pub fn get_command(&self) -> u8 {
+        pub fn command(&self) -> u8 {
             self.command
         }
 
-        pub fn get_starting_address(&self) -> u8 {
+        pub fn starting_address(&self) -> u8 {
             self.starting_address
         }
 
-        pub fn get_length(&self) -> u8 {
+        pub fn length(&self) -> u8 {
             self.length
         }
 

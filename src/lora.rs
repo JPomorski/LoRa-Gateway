@@ -1,4 +1,3 @@
-use std::mem::size_of;
 use crate::enums::mode_type::ModeType;
 use crate::status;
 use crate::status::E220Error;
@@ -9,14 +8,14 @@ use crate::utility::configuration::Configuration;
 use std::time::{Duration, Instant};
 
 #[cfg(feature = "default")]
-use rppal::gpio::Gpio;
+use rppal::gpio::{Gpio, InputPin, OutputPin};
 #[cfg(feature = "default")]
-use rppal::uart::Uart;
+use rppal::uart::{Uart, Parity};
 
 #[cfg(not(feature = "default"))]
-use crate::mock::gpio::Gpio;
+use crate::mock::gpio::{Gpio, InputPin, OutputPin};
 #[cfg(not(feature = "default"))]
-use crate::mock::uart::Uart;
+use crate::mock::uart::{Uart, Parity};
 
 #[derive(Debug, Clone)]
 pub struct ResponseStatus {
@@ -67,12 +66,10 @@ pub const MAX_SIZE_TX_PACKET: u8 = 200;
 
 use crate::uart::UartBpsRate;
 pub struct LoRa {
-    tx_e220_pin: i8,
-    rx_e220_pin: i8,
-    aux_pin: i8,
+    aux_pin: Option<InputPin>,
 
-    m0_pin: i8,
-    m1_pin: i8,
+    m0_pin: OutputPin,
+    m1_pin: OutputPin,
 
     uart: Uart,
 
@@ -81,16 +78,34 @@ pub struct LoRa {
 }
 
 impl LoRa {
-    pub fn new(uart: Uart) -> LoRa {
+    pub fn new(m0_pin: u8, m1_pin: u8) -> LoRa {
+        let gpio = Gpio::new().expect("GPIO failed to initialize!");
+
         LoRa {
-            tx_e220_pin: UNINITIALIZED,
-            rx_e220_pin: UNINITIALIZED,
-            aux_pin: UNINITIALIZED,
+            aux_pin: None,
 
-            m0_pin: UNINITIALIZED,
-            m1_pin: UNINITIALIZED,
+            m0_pin: gpio.get(m0_pin).expect("M0 pin failed to be fetched!").into_output(),
+            m1_pin: gpio.get(m1_pin).expect("M1 pin failed to be fetched!").into_output(),
 
-            uart,
+            // might need changes
+            uart: Uart::new(9600, Parity::None, 8, 1).expect("UART failed to initialize!"),
+
+            bps_rate: UartBpsRate::UartBpsRate9600,
+            mode: ModeType::MODE_0_NORMAL
+        }
+    }
+
+    pub fn with_aux(m0_pin: u8, m1_pin: u8, aux_pin: u8) -> LoRa {
+        let gpio = Gpio::new().expect("GPIO failed to initialize!");
+
+        LoRa {
+            aux_pin: Some(gpio.get(aux_pin).expect("AUX pin failed to be fetched!").into_input()),
+
+            m0_pin: gpio.get(m0_pin).expect("M0 pin failed to be fetched!").into_output(),
+            m1_pin: gpio.get(m1_pin).expect("M1 pin failed to be fetched!").into_output(),
+
+            // might need changes
+            uart: Uart::new(9600, Parity::None, 8, 1).expect("UART failed to initialize!"),
 
             bps_rate: UartBpsRate::UartBpsRate9600,
             mode: ModeType::MODE_0_NORMAL
@@ -109,7 +124,7 @@ impl LoRa {
             PacketLength::Configuration
         );
 
-        let result = self.receive_struct(size_of::<Configuration>());  // has to be verified
+        let result = self.receive_struct(11);  // has to be verified
 
         self.print_parameters();
 
@@ -150,9 +165,9 @@ impl LoRa {
         configuration.set_length(PacketLength::Configuration);
 
         let data = configuration.to_bytes();
-        self.send_struct(data, size_of::<Configuration>())?;    // again, verify the size
+        self.send_struct(data, 11)?;    // again, verify the size
 
-        let received_data = self.receive_struct(size_of::<Configuration>())?;
+        let received_data = self.receive_struct(11)?;
 
         self.print_parameters();
 
@@ -190,36 +205,28 @@ impl LoRa {
         let duration = 40;
         Self::managed_delay(Duration::from_millis(duration));
 
-        if self.m0_pin == UNINITIALIZED && self.m1_pin == UNINITIALIZED {
-            println!("The M0 and M1 pins are not set!")
-        } else {
-            let gpio = Gpio::new().expect("GPIO failed to initialize!");
-            let mut m0 = gpio.get(self.m0_pin as u8).expect("M0 pin failed to be fetched!").into_output();
-            let mut m1 = gpio.get(self.m1_pin as u8).expect("M1 pin failed to be fetched!").into_output();
-
-            match mode {
-                ModeType::MODE_0_NORMAL => {
-                    m0.set_low();
-                    m1.set_low();
-                    println!("MODE: NORMAL")
-                },
-                ModeType::MODE_1_WOR_TRANSMITTER => {
-                    m0.set_high();
-                    m1.set_low();
-                    println!("MODE: WOR TRANSMITTING")
-                },
-                ModeType::MODE_2_WOR_RECEIVER => {
-                    m0.set_low();
-                    m1.set_high();
-                    println!("MODE: WOR RECEIVING")
-                },
-                ModeType::MODE_3_CONFIGURATION => {
-                    m0.set_high();
-                    m1.set_high();
-                    println!("MODE: SLEEP CONFIG")
-                },
-                _ => return Err(E220Error::InvalidParam)
-            }
+        match mode {
+            ModeType::MODE_0_NORMAL => {
+                self.m0_pin.set_low();
+                self.m1_pin.set_low();
+                println!("MODE: NORMAL")
+            },
+            ModeType::MODE_1_WOR_TRANSMITTER => {
+                self.m0_pin.set_high();
+                self.m1_pin.set_low();
+                println!("MODE: WOR TRANSMITTING")
+            },
+            ModeType::MODE_2_WOR_RECEIVER => {
+                self.m0_pin.set_low();
+                self.m1_pin.set_high();
+                println!("MODE: WOR RECEIVING")
+            },
+            ModeType::MODE_3_CONFIGURATION => {
+                self.m0_pin.set_high();
+                self.m1_pin.set_high();
+                println!("MODE: SLEEP CONFIG")
+            },
+            _ => return Err(E220Error::InvalidParam)
         }
 
         Self::managed_delay(Duration::from_millis(duration));
@@ -313,10 +320,7 @@ impl LoRa {
     fn wait_complete_response(&self, timeout: Duration, wait_no_aux: Duration) -> Result<(), E220Error> {
         let start = Instant::now();
 
-        if self.aux_pin != UNINITIALIZED {
-            let gpio = Gpio::new().expect("GPIO failed to initialize!");
-            let aux = gpio.get(self.aux_pin as u8).expect("AUX pin failed to be fetched!").into_input();
-
+        if let Some(aux) = &self.aux_pin {
             while aux.is_low() {
                 if start.elapsed() > timeout {
                     println!("Timeout error!");

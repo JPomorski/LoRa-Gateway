@@ -1,11 +1,11 @@
 // translated to Rust based on code by www.mischianti.org
 
-mod lora;
-mod status;
-mod enums;
-mod utility;
-mod uart;
-mod mock;
+pub mod lora;
+pub mod status;
+pub mod enums;
+pub mod utility;
+pub mod uart;
+pub mod mock;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

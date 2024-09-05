@@ -103,19 +103,19 @@ pub mod transmission_mode {
             self.rssi_enable
         }
 
-        pub fn get_wor_period_by_params_description() -> String {
+        pub fn get_wor_period_by_params_description(&self) -> String {
             todo!()
         }
 
-        pub fn get_lbt_enable_byte_description() -> String {
+        pub fn get_lbt_enable_byte_description(&self) -> String {
             todo!()
         }
 
-        pub fn get_fixed_transmission_description() -> String {
+        pub fn get_fixed_transmission_description(&self) -> String {
             todo!()
         }
 
-        pub fn get_rssi_enable_byte_description() -> String {
+        pub fn get_rssi_enable_byte_description(&self) -> String {
             todo!()
         }
     }
@@ -161,15 +161,15 @@ pub mod opt {
             self.sub_packet_setting
         }
 
-        pub fn get_transmission_power_description() -> String {
+        pub fn get_transmission_power_description(&self) -> String {
             todo!()
         }
 
-        pub fn get_rssi_ambient_noise_enable() -> String {
+        pub fn get_rssi_ambient_noise_enable(&self) -> String {
             todo!()
         }
 
-        pub fn get_sub_packet_setting_description() -> String {
+        pub fn get_sub_packet_setting_description(&self) -> String {
             todo!()
         }
     }
@@ -344,6 +344,69 @@ pub mod configuration {
 
         pub fn get_channel_description(&self) -> String {
             todo!()
+        }
+
+        pub fn print_parameters(&self) {
+            println!("--------------------------------");
+
+            println!("Head: 0x{:02X}, 0x{:02X}, 0x{:02X}", self.command, self.starting_address, self.length);
+
+            println!(" ");
+
+            println!("Add H: 0x{:02X}", self.add_h);
+            println!("Add L: 0x{:02X}", self.add_l);
+
+            println!(" ");
+
+            println!("Channel: {}", self.chan);
+
+            println!(" ");
+
+            println!("Speed:");
+            println!("ParityBit: {:08b}", self.sped.uart_parity());
+            println!("BaudRate: {:08b}", self.sped.uart_baud_rate());
+            println!("AirDataRate: {:08b}", self.sped.air_data_rate());
+
+            println!(" ");
+
+            println!("Option:");
+            println!("SubPacketSetting: {:08b}", self.opt.sub_packet_setting());
+            println!("TransmissionPower: {:08b}", self.opt.transmission_power());
+            println!("RSSIAmbientNoise: {:08b}", self.opt.rssi_ambient_noise());
+
+            println!(" ");
+
+            println!("Transmission Mode:");
+            println!("WORPeriod: {:08b}", self.transmission_mode.wor_period());
+            println!("LBTEnable: {:08b}", self.transmission_mode.lbt_enable());
+            println!("RSSIEnable: {:08b}", self.transmission_mode.rssi_enable());
+            println!("FixedTransmission: {:08b}", self.transmission_mode.fixed_transmission());
+
+            // println!("Channel: {} -> {}", self.chan, self.get_channel_description());
+            //
+            // println!(" ");
+            //
+            // println!("Speed:");
+            // println!("ParityBit: {:08b} -> {}", self.sped.uart_parity(), self.sped.get_uart_parity_description());
+            // println!("BaudRate: {:08b} -> {}", self.sped.uart_baud_rate(), self.sped.get_uart_baud_rate_description());
+            // println!("AirDataRate: {:08b} -> {}", self.sped.air_data_rate(), self.sped.get_air_data_rate_description());
+            //
+            // println!(" ");
+            //
+            // println!("Option:");
+            // println!("SubPacketSetting: {:08b} -> {}", self.opt.sub_packet_setting(), self.opt.get_sub_packet_setting_description());
+            // println!("TransmissionPower: {:08b} -> {}", self.opt.transmission_power(), self.opt.get_transmission_power_description());
+            // println!("RSSIAmbientNoise: {:08b} -> {}", self.opt.rssi_ambient_noise(), self.opt.get_rssi_ambient_noise_enable());
+            //
+            // println!(" ");
+            //
+            // println!("Transmission Mode:");
+            // println!("WORPeriod: {:08b} -> {}", self.transmission_mode.wor_period(), self.transmission_mode.get_wor_period_by_params_description());
+            // println!("LBTEnable: {:08b} -> {}", self.transmission_mode.lbt_enable(), self.transmission_mode.get_lbt_enable_byte_description());
+            // println!("RSSIEnable: {:08b} -> {}", self.transmission_mode.rssi_enable(), self.transmission_mode.get_rssi_enable_byte_description());
+            // println!("FixedTransmission: {:08b} -> {}", self.transmission_mode.fixed_transmission(), self.transmission_mode.get_fixed_transmission_description());
+
+            println!("--------------------------------");
         }
     }
 }

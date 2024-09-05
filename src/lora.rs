@@ -78,10 +78,10 @@ pub struct LoRa {
 }
 
 impl LoRa {
-    pub fn new(m0_pin: u8, m1_pin: u8) -> LoRa {
+    pub fn new(m0_pin: u8, m1_pin: u8) -> Result<LoRa, E220Error> {
         let gpio = Gpio::new().expect("GPIO failed to initialize!");
 
-        LoRa {
+        let mut lora = LoRa {
             aux_pin: None,
 
             m0_pin: gpio.get(m0_pin).expect("M0 pin failed to be fetched!").into_output(),
@@ -91,14 +91,18 @@ impl LoRa {
             uart: Uart::new(9600, Parity::None, 8, 1).expect("UART failed to initialize!"),
 
             bps_rate: UartBpsRate::UartBpsRate9600,
-            mode: ModeType::MODE_0_NORMAL
-        }
+            mode: ModeType::MODE_INIT   // might be improved
+        };
+
+        lora.set_mode(ModeType::MODE_0_NORMAL)?;
+
+        Ok(lora)
     }
 
-    pub fn with_aux(m0_pin: u8, m1_pin: u8, aux_pin: u8) -> LoRa {
+    pub fn with_aux(m0_pin: u8, m1_pin: u8, aux_pin: u8) -> Result<LoRa, E220Error> {
         let gpio = Gpio::new().expect("GPIO failed to initialize!");
 
-        LoRa {
+        let mut lora = LoRa {
             aux_pin: Some(gpio.get(aux_pin).expect("AUX pin failed to be fetched!").into_input()),
 
             m0_pin: gpio.get(m0_pin).expect("M0 pin failed to be fetched!").into_output(),
@@ -108,8 +112,12 @@ impl LoRa {
             uart: Uart::new(9600, Parity::None, 8, 1).expect("UART failed to initialize!"),
 
             bps_rate: UartBpsRate::UartBpsRate9600,
-            mode: ModeType::MODE_0_NORMAL
-        }
+            mode: ModeType::MODE_INIT   // might be improved
+        };
+
+        lora.set_mode(ModeType::MODE_0_NORMAL)?;
+
+        Ok(lora)
     }
 
     pub fn get_configuration(&mut self) -> Result<Configuration, E220Error> {
@@ -126,7 +134,7 @@ impl LoRa {
 
         let result = self.receive_struct(11);  // has to be verified
 
-        self.print_parameters();
+        // self.print_parameters();
 
         self.set_mode(prev_mode)?;
 
@@ -169,7 +177,7 @@ impl LoRa {
 
         let received_data = self.receive_struct(11)?;
 
-        self.print_parameters();
+        // self.print_parameters();
 
         self.set_mode(prev_mode)?;
 
@@ -239,10 +247,6 @@ impl LoRa {
         Ok(())
     }
 
-    fn print_parameters(&self) {
-        todo!()
-    }
-
     fn write_program_command(&mut self, cmd: ProgramCommand, addr: RegisterAddress, pl: PacketLength) -> bool {
         let command = vec![cmd as u8, addr as u8, pl as u8];
         let size = self.uart.write(&command).expect("Failed to write to UART");
@@ -255,7 +259,7 @@ impl LoRa {
     }
 
     fn receive_struct(&mut self, expected_size: usize) -> Result<Vec<u8>, E220Error> {
-        let mut data = Vec::new();
+        let mut data = vec![0u8; expected_size];
         let read_bytes = self.uart.read(&mut data).expect("Failed to read from UART");
 
         println!("Available buffer: {read_bytes}");

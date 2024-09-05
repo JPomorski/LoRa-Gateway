@@ -67,11 +67,11 @@ pub mod uart {
         }
 
         pub fn read(&mut self, _buffer: &mut [u8]) -> Result<usize, ()> {
-            Ok(1)
+            Ok(11)
         }
 
         pub fn write(&mut self, _buffer: &[u8]) -> Result<usize, ()> {
-            Ok(1)
+            Ok(11)
         }
     }
 

@@ -156,7 +156,7 @@ impl LoRa {
         Ok(configuration)
     }
 
-    fn set_configuration(&mut self, mut configuration: Configuration, permanent: bool) -> Result<(), E220Error> {
+    pub fn set_configuration(&mut self, mut configuration: Configuration, permanent: bool) -> Result<(), E220Error> {
         self.check_uart_configuration(ModeType::MODE_3_PROGRAM)?;
 
         let prev_mode = self.mode();

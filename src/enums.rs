@@ -137,3 +137,62 @@ pub mod mode_type {
         pub const MODE_INIT: Self = Self::ModeInit;
     }
 }
+
+pub mod sub_packet_setting {
+    pub enum SubPacketSetting {
+        SPS200_00 = 0b00,
+        SPS128_01 = 0b01,
+        SPS064_10 = 0b10,
+        SPS032_11 = 0b11
+    }
+}
+
+pub mod rssi_ambient_noise_enable {
+    pub enum RSSIAmbientNoiseEnable {
+        Disabled = 0b0,
+        Enabled = 0b1
+    }
+}
+
+pub mod wor_period {
+    pub enum WORPeriod {
+        WOR500_000 = 0b000,
+        WOR1000_001 = 0b001,
+        WOR1500_010 = 0b010,
+        WOR2000_011 = 0b011,
+        WOR2500_100 = 0b100,
+        WOR3000_101 = 0b101,
+        WOR3500_110 = 0b110,
+        WOR4000_111 = 0b111
+    }
+}
+
+pub mod lbt_enable {
+    pub enum LBTEnable {
+        Disabled = 0b0,
+        Enabled = 0b1
+    }
+}
+
+pub mod rssi_enable {
+    pub enum RSSIEnable {
+        Disabled = 0b0,
+        Enabled = 0b1
+    }
+}
+
+pub mod fixed_transmission {
+    pub enum FixedTransmission {
+        Disabled = 0b0,
+        Enabled = 0b1
+    }
+}
+
+pub mod transmission_power {
+    pub enum TransmissionPower {
+        Power22 = 0b00,
+        Power17 = 0b01,
+        Power13 = 0b10,
+        Power10 = 0b11
+    }
+}

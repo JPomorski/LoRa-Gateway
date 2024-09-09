@@ -34,8 +34,8 @@ fn main() {
 
         Speed::from_u8(
             AirDataRate::AirDataRate010_24 as u8,
-            UartBpsType::UartBps9600 as u8,
-            UartParity::Mode00_8N1 as u8
+            UartParity::Mode00_8N1 as u8,
+            UartBpsType::UartBps9600 as u8
         ),
 
         Opt::from_u8(

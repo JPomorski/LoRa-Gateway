@@ -141,14 +141,14 @@ impl LoRa {
         let data = result?;
         let configuration = Configuration::from_bytes(&data);
 
-        if configuration.command() == ProgramCommand::WrongFormat as u8 {
+        if configuration.command() == ProgramCommand::WrongFormat.code() {
             return Err(E220Error::WrongFormat);
         }
 
         // change Configuration struct to use enums instead
-        if configuration.command() != ProgramCommand::ReturnedCommand as u8
+        if configuration.command() != ProgramCommand::ReturnedCommand.code()
             || configuration.starting_address() != RegisterAddress::Configuration as u8
-            || configuration.length() != PacketLength::Configuration as u8
+            || configuration.length() != PacketLength::Configuration.value()
         {
             return  Err(E220Error::HeadNotRecognized);
         }
@@ -184,13 +184,13 @@ impl LoRa {
         let received_configuration = Configuration::from_bytes(&received_data);
 
         // could compare the configuration objects instead
-        if received_configuration.command() == ProgramCommand::WrongFormat as u8 {
+        if received_configuration.command() == ProgramCommand::WrongFormat.code() {
             return Err(E220Error::WrongFormat)
         }
 
-        if received_configuration.command() != ProgramCommand::ReturnedCommand as u8
+        if received_configuration.command() != ProgramCommand::ReturnedCommand.code()
             || received_configuration.starting_address() != RegisterAddress::Configuration as u8
-            || received_configuration.length() != PacketLength::Configuration as u8
+            || received_configuration.length() != PacketLength::Configuration.value()
         {
             return Err(E220Error::HeadNotRecognized)
         }
@@ -248,7 +248,7 @@ impl LoRa {
     }
 
     fn write_program_command(&mut self, cmd: ProgramCommand, addr: RegisterAddress, pl: PacketLength) -> bool {
-        let command = vec![cmd as u8, addr as u8, pl as u8];
+        let command = vec![cmd.code(), addr as u8, pl.value()];
         let size = self.uart.write(&command).expect("Failed to write to UART");
 
         println!("Bytes written: {size}");

@@ -41,7 +41,7 @@ pub enum PacketLength {
 }
 
 impl PacketLength {
-    pub fn length(&self) -> u8 {
+    pub fn value(&self) -> u8 {
         match self {
             PacketLength::Configuration => 0x08,
             PacketLength::Sped => 0x01,

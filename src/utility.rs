@@ -361,7 +361,7 @@ pub mod configuration {
         }
 
         pub fn set_command(&mut self, command: ProgramCommand) {
-            self.command = command as u8;
+            self.command = command.code();
         }
 
         pub fn set_starting_address(&mut self, starting_address: RegisterAddress) {
@@ -369,7 +369,7 @@ pub mod configuration {
         }
 
         pub fn set_length(&mut self, length: PacketLength) {
-            self.length = length as u8;
+            self.length = length.value();
         }
 
         pub fn get_channel_description(&self) -> String {

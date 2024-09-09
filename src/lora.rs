@@ -1,9 +1,9 @@
-use crate::enums::mode_type::ModeType;
+use crate::enums::ModeType;
 use crate::status;
 use crate::status::E220Error;
-use crate::enums::program_command::ProgramCommand;
-use crate::enums::packet_length::PacketLength;
-use crate::enums::register_address::RegisterAddress;
+use crate::enums::ProgramCommand;
+use crate::enums::PacketLength;
+use crate::enums::RegisterAddress;
 use crate::utility::configuration::Configuration;
 use std::time::{Duration, Instant};
 

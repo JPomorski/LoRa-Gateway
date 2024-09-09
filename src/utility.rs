@@ -208,9 +208,9 @@ pub mod crypt {
 }
 
 pub mod configuration {
-    use crate::enums::packet_length::PacketLength;
-    use crate::enums::program_command::ProgramCommand;
-    use crate::enums::register_address::RegisterAddress;
+    use crate::enums::PacketLength;
+    use crate::enums::ProgramCommand;
+    use crate::enums::RegisterAddress;
     use crate::utility::crypt::Crypt;
     use crate::utility::opt::Opt;
     use crate::utility::speed::Speed;

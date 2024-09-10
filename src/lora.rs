@@ -300,7 +300,7 @@ impl LoRa {
         self.wait_complete_response(duration, duration)?;
 
         println!("Clearing UART buffer...");
-        self.clear_uart_buffer();
+        // self.clear_uart_buffer();
 
         Ok(())
     }

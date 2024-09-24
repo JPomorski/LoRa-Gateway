@@ -316,6 +316,18 @@ impl LoRa {
         }
     }
 
+    pub fn send_message(&mut self, message: String) -> Result<(), E220Error> {
+        println!("Sending message: {}", message);
+
+        let size = message.len();
+        println!("Message size: {}", size);
+
+        let message_bytes = message.as_bytes();
+        self.send_struct(message_bytes.to_vec(), size)?;
+
+        Ok(())
+    }
+
     fn managed_delay(timeout: Duration) {
         let start = Instant::now();
         while start.elapsed() < timeout {}

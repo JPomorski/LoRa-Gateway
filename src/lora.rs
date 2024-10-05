@@ -316,7 +316,7 @@ impl LoRa {
         }
     }
 
-    pub fn send_message(&mut self, message: String) -> Result<(), E220Error> {
+    pub fn send_text_message(&mut self, message: String) -> Result<(), E220Error> {
         println!("Sending message: {}", message);
 
         let size = message.len();
@@ -326,6 +326,39 @@ impl LoRa {
         self.send_struct(message_bytes.to_vec(), size)?;
 
         Ok(())
+    }
+
+    pub fn send_message(&mut self, message: Vec<u8>, size: usize) -> Result<(), E220Error> {
+        self.send_struct(message, size)
+    }
+
+    pub fn receive_message(&mut self, size: usize) -> Result<String, E220Error> {
+        let result = self.receive_text_message_complete(false, size)?;
+        let message = result.0;
+
+        Ok(message)
+    }
+
+    pub fn receive_message_rssi(&mut self, size: usize) -> Result<(String, u8), E220Error> {
+        let result = self.receive_text_message_complete(true, size)?;
+        let message = result.0;
+        let Some(rssi) = result.1;
+
+        Ok((message, rssi))
+    }
+
+    pub fn receive_message_complete(&mut self, read_rssi: bool, size: usize) -> Result<(String, Option<u8>), E220Error> {
+        let mut message_bytes = self.receive_struct(size)?;
+
+        let rssi = if read_rssi {
+            message_bytes.pop()
+        } else {
+            None
+        };
+
+        let message = String::from_utf8(message_bytes).expect("Failed to convert message to String");
+
+        Ok((message, rssi))
     }
 
     fn managed_delay(timeout: Duration) {

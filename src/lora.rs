@@ -332,31 +332,30 @@ impl LoRa {
         self.send_struct(message, size)
     }
 
-    pub fn receive_message(&mut self, size: usize) -> Result<String, E220Error> {
-        let result = self.receive_text_message_complete(false, size)?;
-        let message = result.0;
+    pub fn receive_text_message(&mut self, size: usize) -> Result<String, E220Error> {
+        let message_bytes = self.receive_struct(size)?;
+        let message = String::from_utf8(message_bytes).expect("Failed to convert message to String");
 
         Ok(message)
     }
 
-    pub fn receive_message_rssi(&mut self, size: usize) -> Result<(String, u8), E220Error> {
-        let result = self.receive_text_message_complete(true, size)?;
-        let message = result.0;
-        let Some(rssi) = result.1;
+    pub fn receive_text_message_rssi(&mut self, size: usize) -> Result<(String, u8), E220Error> {
+        let mut message_bytes = self.receive_struct(size + 1)?; // account for extra RSSI byte
+        let rssi = message_bytes.pop().unwrap();
+        let message = String::from_utf8(message_bytes).expect("Failed to convert message to String");
 
         Ok((message, rssi))
     }
 
-    pub fn receive_message_complete(&mut self, read_rssi: bool, size: usize) -> Result<(String, Option<u8>), E220Error> {
-        let mut message_bytes = self.receive_struct(size)?;
+    pub fn receive_message(&mut self, size: usize) -> Result<Vec<u8>, E220Error> {
+        let message = self.receive_struct(size)?;
 
-        let rssi = if read_rssi {
-            message_bytes.pop()
-        } else {
-            None
-        };
+        Ok(message)
+    }
 
-        let message = String::from_utf8(message_bytes).expect("Failed to convert message to String");
+    pub fn receive_message_rssi(&mut self, size: usize) -> Result<(Vec<u8>, u8), E220Error> {
+        let mut message = self.receive_struct(size + 1)?;  // account for extra RSSI byte
+        let rssi = message.pop().unwrap();
 
         Ok((message, rssi))
     }

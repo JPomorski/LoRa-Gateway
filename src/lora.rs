@@ -332,6 +332,27 @@ impl LoRa {
         self.send_struct(message, size)
     }
 
+    pub fn send_fixed_text_message(&mut self, add_h: u8, add_l: u8, chan: u8, message: String) -> Result<(), E220Error> {
+        let mut message_packet = vec![add_h, add_l, chan];
+        let size = message.len();
+
+        message_packet.append(&mut message.as_bytes().to_vec());
+
+        self.send_struct(message_packet, size + 3)?;    // account for the extra bytes
+
+        Ok(())
+    }
+
+    pub fn send_fixed_message(&mut self, add_h: u8, add_l: u8, chan: u8, message: &mut Vec<u8>, size: usize) -> Result<(), E220Error> {
+        let mut message_packet = vec![add_h, add_l, chan];
+        message_packet.append(&mut message.clone());    // retains the original data, might not be needed
+
+        self.send_struct(message_packet, size + 3)?;    // account for the extra bytes
+
+        Ok(())
+    }
+
+    // might need to include receiving messages of unknown size later
     pub fn receive_text_message(&mut self, size: usize) -> Result<String, E220Error> {
         let message_bytes = self.receive_struct(size)?;
         let message = String::from_utf8(message_bytes).expect("Failed to convert message to String");
@@ -358,6 +379,11 @@ impl LoRa {
         let rssi = message.pop().unwrap();
 
         Ok((message, rssi))
+    }
+
+    // possible solution for handling messages of unknown size
+    pub fn receive_until_delimiter(_delimiter: char) -> Result<String, E220Error> {
+        todo!()
     }
 
     fn managed_delay(timeout: Duration) {
